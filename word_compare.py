@@ -13,18 +13,50 @@ def extract_text_from_docx(file_bytes):
         full_text.append(para.text)
     return '\n'.join(full_text)
 
+def generate_email_friendly_diff(original_text, final_text):
+    """Generate email-friendly inline diff (single column, easy to read)"""
+    original_lines = original_text.splitlines()
+    final_lines = final_text.splitlines()
+
+    # Use unified diff to get changes
+    diff = difflib.unified_diff(
+        original_lines,
+        final_lines,
+        lineterm='',
+        n=2  # context lines
+    )
+
+    html_parts = []
+    html_parts.append('<div style="font-family:Arial,sans-serif;font-size:14px;line-height:1.8;max-width:100%;overflow-x:auto;">')
+
+    change_count = 0
+    for line in diff:
+        if line.startswith('---') or line.startswith('+++') or line.startswith('@@'):
+            continue  # Skip diff headers
+
+        if line.startswith('-'):
+            # Deleted line
+            change_count += 1
+            html_parts.append(f'<div style="background:#ffcccc;padding:10px;margin:5px 0;border-left:4px solid #cc0000;word-wrap:break-word;"><strong>REMOVED:</strong> {line[1:]}</div>')
+        elif line.startswith('+'):
+            # Added line
+            change_count += 1
+            html_parts.append(f'<div style="background:#ccffcc;padding:10px;margin:5px 0;border-left:4px solid #00cc00;word-wrap:break-word;"><strong>ADDED:</strong> {line[1:]}</div>')
+        elif line.startswith(' '):
+            # Unchanged context line
+            html_parts.append(f'<div style="color:#666;padding:5px 10px;word-wrap:break-word;">{line[1:]}</div>')
+
+    if change_count == 0:
+        html_parts.append('<p style="color:#666;font-style:italic;">No text changes detected between versions.</p>')
+
+    html_parts.append('</div>')
+
+    return '\n'.join(html_parts)
+
 def generate_html_diff(original_text, final_text):
     """Generate HTML showing differences"""
-    diff = difflib.HtmlDiff()
-    html_diff = diff.make_file(
-        original_text.splitlines(),
-        final_text.splitlines(),
-        fromdesc='Original Version',
-        todesc='Final Version',
-        context=True,
-        numlines=3
-    )
-    return html_diff
+    # Use the email-friendly version instead
+    return generate_email_friendly_diff(original_text, final_text)
 
 @app.route('/compare', methods=['POST'])
 def compare_documents():
