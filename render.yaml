@@ -1,0 +1,7 @@
+services:
+  - type: web
+    name: word-compare-api
+    env: python
+    buildCommand: pip install -r requirements.txt
+    startCommand: gunicorn --bind 0.0.0.0:$PORT word_compare:app
+    healthCheckPath: /health
