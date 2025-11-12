@@ -113,5 +113,78 @@ def compare_documents():
 def health():
     return jsonify({'status': 'healthy'})
 
+@app.route('/', methods=['GET'])
+def upload_ui():
+    return '''
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <title>Compare Documents</title>
+  <style>
+    body { font-family: Arial, sans-serif; margin: 40px; }
+    .container { max-width: 640px; margin: 0 auto; }
+    label { display: block; margin-top: 16px; font-weight: bold; }
+    input[type="file"] { display: block; margin-top: 8px; }
+    button { margin-top: 24px; padding: 10px 18px; font-size: 15px; }
+    #result { margin-top: 32px; border: 1px solid #ccc; padding: 16px; border-radius: 6px; background: #fafafa; }
+  </style>
+</head>
+<body>
+  <div class="container">
+    <h2>Ad-hoc Document Compare</h2>
+    <p>Upload two files (DOCX or PDF). Results will appear below.</p>
+    <form id="compareForm">
+      <label for="originalFile">Original document</label>
+      <input id="originalFile" name="original" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf" required />
+
+      <label for="finalFile">Final document</label>
+      <input id="finalFile" name="final" type="file" accept=".docx,application/vnd.openxmlformats-officedocument.wordprocessingml.document,application/pdf" required />
+
+      <button type="submit">Compare</button>
+    </form>
+    <div id="result"></div>
+  </div>
+
+  <script>
+    const form = document.getElementById('compareForm');
+    const resultDiv = document.getElementById('result');
+
+    form.addEventListener('submit', async (event) => {
+      event.preventDefault();
+      resultDiv.innerHTML = '<p>Comparing…</p>';
+
+      const formData = new FormData(form);
+
+      try {
+        const response = await fetch('/compare', {
+          method: 'POST',
+          body: formData
+        });
+
+        const data = await response.json();
+
+        if (!response.ok) {
+          throw new Error(data.error || 'Compare failed');
+        }
+
+        const stats = data.stats || {};
+        const meta = `
+          <p><strong>Original words:</strong> ${stats.original_words ?? '–'}</p>
+          <p><strong>Final words:</strong> ${stats.final_words ?? '–'}</p>
+          <p><strong>Difference:</strong> ${stats.word_difference ?? '–'}</p>
+        `;
+
+        resultDiv.innerHTML = meta + (data.html_diff || '<p>No diff output.</p>');
+
+      } catch (err) {
+        resultDiv.innerHTML = `<p style="color:#b00020;">${err.message}</p>`;
+      }
+    });
+  </script>
+</body>
+</html>
+'''
+
 if __name__ == '__main__':
     app.run(host='0.0.0.0', port=5000)
