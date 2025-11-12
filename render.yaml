@@ -3,5 +3,15 @@ services:
     name: word-compare-api
     env: python
     buildCommand: pip install -r requirements.txt
-    startCommand: gunicorn --bind 0.0.0.0:$PORT word_compare:app
+    startCommand: gunicorn --bind 0.0.0.0:$PORT --workers ${WEB_CONCURRENCY:-2} --threads ${GUNICORN_THREADS:-2} --timeout ${GUNICORN_TIMEOUT:-120} word_compare:app
     healthCheckPath: /health
+    envVars:
+      - key: PYTHON_VERSION
+        value: 3.11.9
+      # Optional tuning:
+      - key: WEB_CONCURRENCY
+        value: "2"
+      - key: GUNICORN_THREADS
+        value: "2"
+      - key: GUNICORN_TIMEOUT
+        value: "120"
